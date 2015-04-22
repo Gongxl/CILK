@@ -1,8 +1,5 @@
 package clients;
 
-import api.Computer;
-import api.Task;
-import computer.ComputerImpl;
 import java.awt.BorderLayout;
 import java.awt.Container;
 import java.net.MalformedURLException;
@@ -15,15 +12,18 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
+import space.SpaceImpl;
+
+import api.Space;
 /**
- *	Hello World
+ *
  * @author Peter Cappello
  * @param <T>
  * return type the Task that this Client executes.
  */
 public class Client<T> extends JFrame {
 	final protected Task<T> task;
-	final private Computer computer;
+
 	protected T taskReturnValue;
 	private long clientStartTime;
 
@@ -34,11 +34,10 @@ public class Client<T> extends JFrame {
 		setTitle(title);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		String url = "rmi://" + domainName + ":" + Computer.PORT + "/"
-				+ Computer.SERVICE_NAME;
-		//computer = new ComputerImpl();
-		computer = (domainName == null) ? new ComputerImpl()
-		: (Computer) Naming.lookup(url);
+		String url = "rmi://" + domainName + ":" + Space.PORT + "/"
+				+ Space.SERVICE_NAME;
+		Space space = (Space) Naming.lookup(url);
+		
 	}
 
 	public void begin() {
@@ -61,11 +60,14 @@ public class Client<T> extends JFrame {
 
 	public T runTask() throws RemoteException {
 		final long taskStartTime = System.nanoTime();
-		final T value = computer.executeTask(task);
+		System.out.println("Send root task to space");
+		space.putAll(new TaskFibNum(n));
+		final T value = space.take();
+		System.out.println("Retrieves the root result from the Space" + value);
 		final long taskRunTime = (System.nanoTime() - taskStartTime) / 1000000;
 		Logger.getLogger(Client.class.getCanonicalName()).log(Level.INFO,
-				"Task {0}Task time: {1} ms.",
-				new Object[] { task, taskRunTime });
+		"Task {0}Task time: {1} ms.",
+		new Object[] { task, taskRunTime });
 		return value;
 	}
 }
