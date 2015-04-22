@@ -15,11 +15,12 @@ import javax.swing.JScrollPane;
 import space.SpaceImpl;
 
 import api.Space;
+
 /**
  *
  * @author Peter Cappello
  * @param <T>
- * return type the Task that this Client executes.
+ *            return type the Task that this Client executes.
  */
 public class Client<T> extends JFrame {
 	final protected Task<T> task;
@@ -37,7 +38,7 @@ public class Client<T> extends JFrame {
 		String url = "rmi://" + domainName + ":" + Space.PORT + "/"
 				+ Space.SERVICE_NAME;
 		Space space = (Space) Naming.lookup(url);
-		
+
 	}
 
 	public void begin() {
@@ -66,8 +67,8 @@ public class Client<T> extends JFrame {
 		System.out.println("Retrieves the root result from the Space" + value);
 		final long taskRunTime = (System.nanoTime() - taskStartTime) / 1000000;
 		Logger.getLogger(Client.class.getCanonicalName()).log(Level.INFO,
-		"Task {0}Task time: {1} ms.",
-		new Object[] { task, taskRunTime });
+				"Task {0}Task time: {1} ms.",
+				new Object[] { task, taskRunTime });
 		return value;
 	}
 }
