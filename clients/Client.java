@@ -6,39 +6,42 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
+import jobs.JobRunner;
 import space.SpaceImpl;
-
+import api.Job;
 import api.Space;
-
 /**
  *
  * @author Peter Cappello
  * @param <T>
- *            return type the Task that this Client executes.
+ * return type the Task that this Client executes.
  */
 public class Client<T> extends JFrame {
-	final protected Task<T> task;
-
 	protected T taskReturnValue;
 	private long clientStartTime;
-
+	private Job<T> job;
+	private Space space;
 	public Client(final String title, final String domainName,
-			final Task<T> task) throws RemoteException, NotBoundException,
+			final Job<T> job) throws RemoteException, NotBoundException,
 			MalformedURLException {
-		this.task = task;
+		this.job = job;
 		setTitle(title);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		String url = "rmi://" + domainName + ":" + Space.PORT + "/"
 				+ Space.SERVICE_NAME;
-		Space space = (Space) Naming.lookup(url);
-
+		this.space = (Space) Naming.lookup(url);	
 	}
 
 	public void begin() {
@@ -61,14 +64,22 @@ public class Client<T> extends JFrame {
 
 	public T runTask() throws RemoteException {
 		final long taskStartTime = System.nanoTime();
-		System.out.println("Send root task to space");
-		space.putAll(new TaskFibNum(n));
-		final T value = space.take();
-		System.out.println("Retrieves the root result from the Space" + value);
+		JobRunner<T> jobRunner = new JobRunner<T>(this.space, this.job);
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		Future<T> future = executor.submit(jobRunner);
+		T value = null;
+		try {
+			value = future.get();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}		
+		System.out.println("Final result" + value);
 		final long taskRunTime = (System.nanoTime() - taskStartTime) / 1000000;
 		Logger.getLogger(Client.class.getCanonicalName()).log(Level.INFO,
 				"Task {0}Task time: {1} ms.",
-				new Object[] { task, taskRunTime });
+				new Object[] { job, taskRunTime });
 		return value;
 	}
 }
