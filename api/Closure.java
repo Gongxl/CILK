@@ -8,7 +8,7 @@ public class Closure <T> {
 	private int missingArgCount;
 	public final Task<T> task;
 	private Type type;
-	public enum Type {WAITING, READY, FINAL}
+	public enum Type {WAITING, FINISH, FINAL}
 	
 	public Closure(int missingArgCount, List<T> argList, Task<T> task) {
 		this.task = task;
@@ -44,12 +44,16 @@ public class Closure <T> {
 		this.type = type;
 	}
 	
-	public T getResult() {
-		assert this.type == Type.READY;
+	public T getAnswer() {
+//		assert this.type == Type.FINISH;
 		return this.argList.get(0);
 	}
 	
 	public void putResult(T result) {
-		this.argList.set(1, result);
+		this.argList.set(0, result);
+	}
+	
+	public void obtainArg(){
+		this.missingArgCount--;
 	}
 }

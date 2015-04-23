@@ -1,6 +1,9 @@
 package space;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -11,6 +14,7 @@ import system.ComputerProxy;
 import api.Job;
 import api.Space;
 import api.Task;
+import api.Closure.Type;
 
 public class SpaceImpl implements Space {
 	private BlockingQueue<Task> taskQueue;
@@ -62,6 +66,7 @@ public class SpaceImpl implements Space {
 	@Override
 	public <T> void resumeTask(Task<T> task) {
 		try {
+			task.evolve();
 			this.taskQueue.put(task);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -73,4 +78,18 @@ public class SpaceImpl implements Space {
 		this
 	}
 
+	public static void main(String[] args) throws RemoteException, NotBoundException {
+		Space space = null;
+		if(System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		try {
+			space = new SpaceImpl();
+			Registry registry = LocateRegistry.createRegistry(Space.PORT);
+			registry.rebind(Space.SERVICE_NAME, space);
+			System.out.println("Space in on, waiting for connection ...");
+		} catch (Exception e) {
+			System.out.println("Space Exception");
+			e.printStackTrace();
+		}
+	}
 }

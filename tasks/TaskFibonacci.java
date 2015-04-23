@@ -9,8 +9,8 @@ import api.Task;
 public class TaskFibonacci extends Task<Integer> {
 	public static final long serialVersionUID = 227L;
 	private int n;
-	public TaskFibonacci(Closure<Integer> continuation, int n) {
-		super(continuation);
+	public TaskFibonacci(Closure<Integer> continuation, int slotIndex, int n) {
+		super(continuation, slotIndex);
 		List<Integer> argList = new ArrayList<Integer>();
 		this.n = n;
 		if(n >= 2) {
@@ -34,8 +34,8 @@ public class TaskFibonacci extends Task<Integer> {
 			this.closure.putResult(result);
 			return true;
 		} else {
-			this.subtaskList.add(new TaskFibonacci(this.closure, n - 1));
-			this.subtaskList.add(new TaskFibonacci(this.closure, n - 2));
+			this.spawn(new TaskFibonacci(this.closure, 0, n - 1));
+			this.spawn(new TaskFibonacci(this.closure, 1, n - 2));
 			return false;
 		}
 	}

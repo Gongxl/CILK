@@ -26,10 +26,10 @@ public class ComputerProxy extends Thread {
 			try {
 				synchronized(this) {
 					task = space.fetchTask();
-					if(!this.running) {
-						space.addTask(task);
-						return;
-					}
+//					if(!this.running) {
+//						space.addTask(task);
+//						return;
+//					}
 					result = computer.executeTask(task);
 				}
 
@@ -46,9 +46,9 @@ public class ComputerProxy extends Thread {
 				// 		its closure will become FINAL
 				if(result.closure.getType() == Closure.Type.WAITING)
 					space.issueTask(task.getSubtaskList());
-				else if(result.closure.getType() == Closure.Type.READY){
+				else if(result.closure.getType() == Closure.Type.FINISH){
 					// feedback the result to task's continuation
-					task.feedback(result.closure.getResult());
+					task.feedback(result.closure.getAnswer());
 					// check if the task's continuation has zero missing 
 					// arguments now. We only need to check the continuation
 					// at this moment. If there is no missing args, the

@@ -24,6 +24,7 @@ import api.Space;
  */
 public class Client<T> extends JFrame {
 	final protected Task<T> task;
+	
 
 	protected T taskReturnValue;
 	private long clientStartTime;

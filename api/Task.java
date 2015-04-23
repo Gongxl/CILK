@@ -13,9 +13,10 @@ public abstract class Task<V> implements Serializable, Callable<Boolean>
 	protected Closure<V> continuation;
 	private int slotIndex;
 	protected ArrayList<Task> subtaskList;
-	public Task(Closure<V> continuation) {
+	public Task(Closure<V> continuation, int slotIndex) {
 		this.closure = null;
 		this.continuation = continuation;
+		this.slotIndex = slotIndex;
 		this.evolve();
 	}
 	@Override
@@ -30,12 +31,12 @@ public abstract class Task<V> implements Serializable, Callable<Boolean>
 		return this.subtaskList;
 	}
 	
-	protected void evolve() {
+	public void evolve() {
 		assert this.closure != null;
 		if(this.isReady()) {
 			if(this.continuation == null)
 				this.closure.setType(Type.FINAL);
-			else this.closure.setType(Type.READY);
+			else this.closure.setType(Type.FINISH);
 		} else this.closure.setType(Type.WAITING);
 	}
 	
@@ -45,6 +46,10 @@ public abstract class Task<V> implements Serializable, Callable<Boolean>
 	
 	public Closure<V> getClosure() {
 		return this.closure;
+	}
+	
+	public Closure<V> getContinuation() {
+		return this.continuation;
 	}
 	
 	public boolean isParentReady() {
@@ -58,5 +63,6 @@ public abstract class Task<V> implements Serializable, Callable<Boolean>
 	public void feedback(V result) {
 		assert this.continuation != null;
 		this.continuation.insertArg(result, this.slotIndex);
+		this.continuation.obtainArg();
 	}
 }
