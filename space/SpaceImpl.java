@@ -4,7 +4,9 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,14 +16,18 @@ import system.ComputerProxy;
 import api.Job;
 import api.Space;
 import api.Task;
-import api.Closure.Type;
 
-public class SpaceImpl implements Space {
+public class SpaceImpl extends UnicastRemoteObject implements Space {
 	private BlockingQueue<Task> taskQueue;
+	private HashMap<Integer, Task> waitingQueue;
+	private BlockingQueue resultQueue;
 	private List<ComputerProxy> computerList;
+	
 	public SpaceImpl()  throws RemoteException {
 		this.taskQueue = new LinkedBlockingQueue<Task>();
 		this.computerList = new ArrayList<ComputerProxy>();
+		this.waitingQueue = new HashMap<Integer, Task>();
+		this.resultQueue = new LinkedBlockingQueue<Task>();
 	}
 
 	@Override
@@ -36,47 +42,10 @@ public class SpaceImpl implements Space {
 	}
 
 	@Override
-	public <T> void issueTask(List<Task<T>> newTaskList) {
-		for(Task<T> task : newTaskList)
-			try {
-				this.taskQueue.put(task);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+	public <T> Task<T> fetchTask() throws RemoteException, InterruptedException {
+		return this.taskQueue.take();
 	}
 
-	@Override
-	public <T> Task<T> fetchTask() {
-		try {
-			return this.taskQueue.take();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	@Override
-	public <T> void addTask(Task<T> task) {
-		try {
-			this.taskQueue.put(task);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-	@Override
-	public <T> void resumeTask(Task<T> task) {
-		try {
-			task.evolve();
-			this.taskQueue.put(task);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	@Override
-	public <T> T take() throws RemoteException {
-		this
-	}
 
 	public static void main(String[] args) throws RemoteException, NotBoundException {
 		Space space = null;
@@ -91,5 +60,49 @@ public class SpaceImpl implements Space {
 			System.out.println("Space Exception");
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public <T> void issueTask(Task<T> task) throws RemoteException {
+		try {
+			this.taskQueue.put(task);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	synchronized public <T>  int suspendTask(Task<T> task) throws RemoteException {
+		int id = this.waitingQueue.size();
+		this.waitingQueue.put(id, task);
+		return id;
+	}
+
+	@Override
+	public <T> void insertArg(T arg, int id, int slotIndex)
+			throws RemoteException {
+		Task task = null;
+		synchronized(this) {
+			task = this.waitingQueue.get(id);
+			task.insertArg(arg, slotIndex);	
+		}
+		if(task.isReady())
+			this.issueTask(task);
+	}
+
+	@Override
+	public <T> T take() throws RemoteException, InterruptedException {
+		return (T) resultQueue.take();
+	}
+
+	@Override
+	public <T> void setupResult(T result) throws RemoteException, InterruptedException {
+		this.resultQueue.put(result);
+	}
+
+	@Override
+	public <T> void startJob(Job<T> job) throws RemoteException,
+			InterruptedException {
+		this.taskQueue.put(job.toTask(this));		
 	}
 }

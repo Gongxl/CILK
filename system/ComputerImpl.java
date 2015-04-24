@@ -2,17 +2,12 @@ package system;
 
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.rmi.server.UnicastRemoteObject;
 
-import api.Closure;
-import api.Result;
 import api.Space;
 import api.Task;
 
-public class ComputerImpl implements Computer {
+public class ComputerImpl extends UnicastRemoteObject implements Computer {
 	public static final long serialVersionUID = 227L; 	
 	private long startTime;
 	private long endTime;
@@ -44,19 +39,12 @@ public class ComputerImpl implements Computer {
 	}
 
 	@Override
-	public <T> Result executeTask(Task<T> t) throws RemoteException {
+	public <T> long executeTask(Task<T> task) throws RemoteException {
 		this.startTime = System.currentTimeMillis();
-		System.out.println("Executing Task: " + t);
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<Boolean> future = executor.submit(t);
-		try {
-			future.get();
-			this.endTime = System.currentTimeMillis();
-			return new Result(t.getClosure(), this.endTime - this.startTime);
-		} catch (ExecutionException | InterruptedException e) {
-			e.printStackTrace();
-			return null;
-		}
+		System.out.println("Executing Task: " + task);
+		task.run();
+		this.endTime = System.currentTimeMillis();
+		return this.endTime - this.startTime;
 		
 	}
 }

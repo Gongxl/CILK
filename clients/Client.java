@@ -8,37 +8,35 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 
-import space.SpaceImpl;
+import api.Job;
 import api.Space;
 import api.Task;
-
 /**
  *
- * @author Peter Cappello
+ * @author Mingrui Lyu
  * @param <T>
- *            return type the Task that this Client executes.
+ * return type the Task that this Client executes.
  */
 public class Client<T> extends JFrame {
-	final protected Task<T> task;
-
 	protected T taskReturnValue;
 	private long clientStartTime;
-
-	public Client(final String title, final String domainName,
-			final Task<T> task) throws RemoteException, NotBoundException,
+	protected Space space;
+	private Job<T> job;
+	public Client(final String title, final String domainName, final Job<T> job) 
+			throws RemoteException, NotBoundException,
 			MalformedURLException {
-		this.task = task;
 		setTitle(title);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		String url = "rmi://" + domainName + ":" + Space.PORT + "/"
 				+ Space.SERVICE_NAME;
-		Space space = (Space) Naming.lookup(url);
-
+		this.space = (Space) Naming.lookup(url);
+		this.job = job;
 	}
 
 	public void begin() {
@@ -61,14 +59,18 @@ public class Client<T> extends JFrame {
 
 	public T runTask() throws RemoteException {
 		final long taskStartTime = System.nanoTime();
-		System.out.println("Send root task to space");
-		space.putAll(new TaskFibNum(n));
-		final T value = space.take();
-		System.out.println("Retrieves the root result from the Space" + value);
+		T value = null;
+		try {
+			this.space.startJob(this.job);
+			value = this.space.take();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		final long taskRunTime = (System.nanoTime() - taskStartTime) / 1000000;
 		Logger.getLogger(Client.class.getCanonicalName()).log(Level.INFO,
 				"Task {0}Task time: {1} ms.",
-				new Object[] { task, taskRunTime });
+				new Object[] {this.job, taskRunTime });
 		return value;
 	}
 }
